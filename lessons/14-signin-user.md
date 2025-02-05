@@ -18,11 +18,11 @@ AUTH_SECRET=v7a59n6HN3COWeporDl4lxfKkL7UPkvVHOu0FDUetjA=
 // USER
 const UserName = z
   .string()
-  .min(2, { message: 'Username must be at least 2 characters' })
-  .max(50, { message: 'Username must be at most 30 characters' })
-const Email = z.string().min(1, 'Email is required').email('Email is invalid')
-const Password = z.string().min(3, 'Password must be at least 3 characters')
-const UserRole = z.string().min(1, 'role is required')
+  .min(2, { message: "Username must be at least 2 characters" })
+  .max(50, { message: "Username must be at most 30 characters" });
+const Email = z.string().min(1, "Email is required").email("Email is invalid");
+const Password = z.string().min(3, "Password must be at least 3 characters");
+const UserRole = z.string().min(1, "role is required");
 
 export const UserInputSchema = z.object({
   name: UserName,
@@ -31,22 +31,22 @@ export const UserInputSchema = z.object({
   emailVerified: z.boolean(),
   role: UserRole,
   password: Password,
-  paymentMethod: z.string().min(1, 'Payment method is required'),
+  paymentMethod: z.string().min(1, "Payment method is required"),
   address: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    street: z.string().min(1, 'Street is required'),
-    city: z.string().min(1, 'City is required'),
-    province: z.string().min(1, 'Province is required'),
-    postalCode: z.string().min(1, 'Postal code is required'),
-    country: z.string().min(1, 'Country is required'),
-    phone: z.string().min(1, 'Phone number is required'),
+    fullName: z.string().min(1, "Full name is required"),
+    street: z.string().min(1, "Street is required"),
+    city: z.string().min(1, "City is required"),
+    province: z.string().min(1, "Province is required"),
+    postalCode: z.string().min(1, "Postal code is required"),
+    country: z.string().min(1, "Country is required"),
+    phone: z.string().min(1, "Phone number is required"),
   }),
-})
+});
 
 export const UserSignInSchema = z.object({
   email: Email,
   password: Password,
-})
+});
 ```
 
 ## update types/index.ts
@@ -65,7 +65,7 @@ export type IUserSignIn = z.infer<typeof UserSignInSchema>
 ## create lib/db/models/user.model.ts
 
 ```ts
-import { IUserInput } from '@/types'
+import { IUserInput } from "@/types";
 import {
   Document,
   // InferSchemaType,
@@ -73,19 +73,19 @@ import {
   model,
   models,
   Schema,
-} from 'mongoose'
+} from "mongoose";
 
 export interface IUser extends Document, IUserInput {
-  _id: string
-  createdAt: Date
-  updatedAt: Date
+  _id: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const userSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    role: { type: String, required: true, default: 'User' },
+    role: { type: String, required: true, default: "User" },
     password: { type: String },
     image: { type: String },
     emailVerified: { type: Boolean, default: false },
@@ -93,59 +93,59 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
   }
-)
+);
 
-const User = (models.User as Model<IUser>) || model<IUser>('User', userSchema)
+const User = (models.User as Model<IUser>) || model<IUser>("User", userSchema);
 
-export default User
+export default User;
 ```
 
 ## create lib/db/client.ts
 
 ```ts
 // This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
-import { MongoClient, ServerApiVersion } from 'mongodb'
+import { MongoClient, ServerApiVersion } from "mongodb";
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"')
+  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
 
-const uri = process.env.MONGODB_URI
+const uri = process.env.MONGODB_URI;
 const options = {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
   },
-}
+};
 
-let client: MongoClient
+let client: MongoClient;
 
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   // In development mode, use a global variable so that the value
   // is preserved across module reloads caused by HMR (Hot Module Replacement).
   const globalWithMongo = global as typeof globalThis & {
-    _mongoClient?: MongoClient
-  }
+    _mongoClient?: MongoClient;
+  };
 
   if (!globalWithMongo._mongoClient) {
-    globalWithMongo._mongoClient = new MongoClient(uri, options)
+    globalWithMongo._mongoClient = new MongoClient(uri, options);
   }
-  client = globalWithMongo._mongoClient
+  client = globalWithMongo._mongoClient;
 } else {
   // In production mode, it's best to not use a global variable.
-  client = new MongoClient(uri, options)
+  client = new MongoClient(uri, options);
 }
 
 // Export a module-scoped MongoClient. By doing this in a
 // separate module, the client can be shared across functions.
-export default client
+export default client;
 ```
 
 ## create auth.config.ts
 
 ```ts
-import type { NextAuthConfig } from 'next-auth'
+import type { NextAuthConfig } from "next-auth";
 
 // Notice this is only an object, not a full Auth.js instance
 export default {
@@ -157,46 +157,46 @@ export default {
         /\/checkout(\/.*)?/,
         /\/account(\/.*)?/,
         /\/admin(\/.*)?/,
-      ]
-      const { pathname } = request.nextUrl
-      if (protectedPaths.some((p) => p.test(pathname))) return !!auth
-      return true
+      ];
+      const { pathname } = request.nextUrl;
+      if (protectedPaths.some((p) => p.test(pathname))) return !!auth;
+      return true;
     },
   },
-} satisfies NextAuthConfig
+} satisfies NextAuthConfig;
 ```
 
 ## create auth.ts
 
 ```ts
-import { MongoDBAdapter } from '@auth/mongodb-adapter'
-import bcrypt from 'bcryptjs'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import { connectToDatabase } from './lib/db'
-import client from './lib/db/client'
-import User from './lib/db/models/user.model'
+import { MongoDBAdapter } from "@auth/mongodb-adapter";
+import bcrypt from "bcryptjs";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { connectToDatabase } from "./lib/db";
+import client from "./lib/db/client";
+import User from "./lib/db/models/user.model";
 
-import NextAuth, { type DefaultSession } from 'next-auth'
-import authConfig from './auth.config'
+import NextAuth, { type DefaultSession } from "next-auth";
+import authConfig from "./auth.config";
 
-declare module 'next-auth' {
+declare module "next-auth" {
   // eslint-disable-next-line no-unused-vars
   interface Session {
     user: {
-      role: string
-    } & DefaultSession['user']
+      role: string;
+    } & DefaultSession["user"];
   }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   pages: {
-    signIn: '/sign-in',
-    newUser: '/sign-up',
-    error: '/sign-in',
+    signIn: "/sign-in",
+    newUser: "/sign-up",
+    error: "/sign-in",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
   },
   adapter: MongoDBAdapter(client),
@@ -204,31 +204,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     CredentialsProvider({
       credentials: {
         email: {
-          type: 'email',
+          type: "email",
         },
-        password: { type: 'password' },
+        password: { type: "password" },
       },
       async authorize(credentials) {
-        await connectToDatabase()
-        if (credentials == null) return null
+        await connectToDatabase();
+        if (credentials == null) return null;
 
-        const user = await User.findOne({ email: credentials.email })
+        const user = await User.findOne({ email: credentials.email });
 
         if (user && user.password) {
           const isMatch = await bcrypt.compare(
             credentials.password as string,
             user.password
-          )
+          );
           if (isMatch) {
             return {
               id: user._id,
               name: user.name,
               email: user.email,
               role: user.role,
-            }
+            };
           }
         }
-        return null
+        return null;
       },
     }),
   ],
@@ -236,41 +236,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt: async ({ token, user, trigger, session }) => {
       if (user) {
         if (!user.name) {
-          await connectToDatabase()
+          await connectToDatabase();
           await User.findByIdAndUpdate(user.id, {
-            name: user.name || user.email!.split('@')[0],
-            role: 'user',
-          })
+            name: user.name || user.email!.split("@")[0],
+            role: "user",
+          });
         }
-        token.name = user.name || user.email!.split('@')[0]
-        token.role = (user as { role: string }).role
+        token.name = user.name || user.email!.split("@")[0];
+        token.role = (user as { role: string }).role;
       }
 
-      if (session?.user?.name && trigger === 'update') {
-        token.name = session.user.name
+      if (session?.user?.name && trigger === "update") {
+        token.name = session.user.name;
       }
-      return token
+      return token;
     },
     session: async ({ session, user, trigger, token }) => {
-      session.user.id = token.sub as string
-      session.user.role = token.role as string
-      session.user.name = token.name
-      if (trigger === 'update') {
-        session.user.name = user.name
+      session.user.id = token.sub as string;
+      session.user.role = token.role as string;
+      session.user.name = token.name;
+      if (trigger === "update") {
+        session.user.name = user.name;
       }
-      return session
+      return session;
     },
   },
-})
+});
 ```
 
 ## middleware.ts
 
 ```ts
-import NextAuth from 'next-auth'
-import authConfig from './auth.config'
+import NextAuth from "next-auth";
+import authConfig from "./auth.config";
 
-export const { auth: middleware } = NextAuth(authConfig)
+export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
   matcher: [
@@ -281,17 +281,17 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
-}
+};
 ```
 
 ## create app/api/auth/[...nextauth]/route.ts
 
 ```ts
-import { handlers } from '@/auth'
+import { handlers } from "@/auth";
 
-export const { GET, POST } = handlers
+export const { GET, POST } = handlers;
 ```
 
 ## create app/checkout/page.tsx
@@ -335,17 +335,17 @@ export default SeparatorWithOr
 ## create lib/actions/user.actions.ts
 
 ```ts
-'use server'
-import { signIn } from '@/auth'
-import { IUserSignIn } from '@/types'
+"use server";
+import { signIn } from "@/auth";
+import { IUserSignIn } from "@/types";
 
 export async function signInWithCredentials(user: IUserSignIn) {
-  return await signIn('credentials', { ...user, redirect: false })
+  return await signIn("credentials", { ...user, redirect: false });
 }
 export const SignOut = async () => {
-  const redirectTo = await signOut({ redirect: false })
-  redirect(redirectTo.redirect)
-}
+  const redirectTo = await signOut({ redirect: false });
+  redirect(redirectTo.redirect);
+};
 ```
 
 ## update app/globals.css
@@ -645,7 +645,7 @@ import UserButton from './user-button'
 ```ts
 export const APP_COPYRIGHT =
   process.env.NEXT_PUBLIC_APP_COPYRIGHT ||
-  `Copyright © 2025 ${APP_NAME}. All rights reserved.`
+  `Copyright © 2025 ${APP_NAME}. All rights reserved.`;
 ```
 
 ## create app/(auth)/layout.tsx
